@@ -1,0 +1,27 @@
+# Legt zu jedem Tag v<version> ein GitHub-Release an. Die Dateien schiebt der
+# Release-Job des (privaten) Quell-Repos hierher, samt Tag.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Release anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          datei="firmware/phonedialer-${ver}.bin"
+          notizen="firmware/notes-${ver}.md"
+          test -f "$datei" || { echo "::error::$datei fehlt"; exit 1; }
+          test -f "$notizen" || echo "Firmware ${ver}, signiert." > "$notizen"
+          gh release create "$GITHUB_REF_NAME" "$datei" \
+            --title "Phonedialer ${ver}" --notes-file "$notizen" --latest
